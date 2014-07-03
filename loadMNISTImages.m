@@ -1,3 +1,5 @@
+# FROM: http://ufldl.stanford.edu/wiki/resources/mnistHelper.zip. 
+
 function images = loadMNISTImages(filename)
 	%loadMNISTImages returns a 28x28x[number of MNIST images] matrix containing
 	%the raw MNIST images
