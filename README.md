@@ -1,0 +1,1 @@
+Simple nn with one hidden layer. Classifies handwritten digits from the MNIST data set.
