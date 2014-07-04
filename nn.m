@@ -4,6 +4,10 @@
 # [a,b,c,d,e,f] = get_16_by_16_data();	
 # model = nn(a,b,c,d,e,f);
 
+# [g,h,i,j,k,l] = get_MNIST_data();  
+# model = nn(g,h,i,j,k,l);
+
+
 
 # TODO online learning (maybe)
 # TODO dropout / regularization generally (as well as weight decay, early-stopping, which I have)
@@ -26,6 +30,7 @@ function model = nn( training_input, training_targets, validation_input, validat
 	learning_mode 	  		= "mini-batch"		
 	mini_batch_size   		= 200	
 	weight_decay_coef		= 0.02
+	weight_decay_type		= "L2"
 	momentum 		  		= 0.9					
 	learning_rate 		  		= 0.01			# NOTE large batch size should mean smaller learning rate. 
 	num_hidden_units 		= 50
@@ -34,7 +39,6 @@ function model = nn( training_input, training_targets, validation_input, validat
 	validation_frequency		= 10
 	bias 				  		= true
 	early_stopping 	 		= true	
-
 
 	# optionally add bias to the inputs
 	if bias
@@ -86,7 +90,7 @@ function model = nn( training_input, training_targets, validation_input, validat
 
 			# (the validation forward pass and error calc are wrapped up in a single function, since we don't need intermediate results)
 			# note that we pad out the validation error record with multiple copies of the error, so it has the same number of values as training error
-			val_error 					= validation( model, validation_input, validation_targets, weight_decay_coef );
+			val_error 					= validation( model, validation_input, validation_targets, weight_decay_coef, weight_decay_type );
 			validation_error_record 	= [ validation_error_record, repmat( val_error, 1, validation_frequency )	 ];
 
 			# if the validation error has increased since last time, stop. Also revert the model to the last model before early stopping
@@ -105,7 +109,7 @@ function model = nn( training_input, training_targets, validation_input, validat
 		
 		## ERROR CALCULATION
 		training_error = mean_cross_entropy_error( training_forward_pass_results.output_from_softmax, training_targets_batch )...
-						+ weight_decay_error( model, weight_decay_coef );
+						+ weight_decay_error( model, weight_decay_coef, weight_decay_type );
 		training_error_record	= [ training_error_record, training_error ];
 
 		## WEIGHT UPDATES
@@ -143,11 +147,11 @@ endfunction
 
 
 # calculate the validation error for the current model
-function val_error = validation( model, validation_input, validation_targets, weight_decay_coef )
+function val_error = validation( model, validation_input, validation_targets, weight_decay_coef, weight_decay_type )
 
 	validation_forward_pass_results	= forward_pass( validation_input, model );
 	val_error 	= mean_cross_entropy_error( validation_forward_pass_results.output_from_softmax, validation_targets ) ...
-				   + weight_decay_error( model, weight_decay_coef ); 
+				   + weight_decay_error( model, weight_decay_coef, weight_decay_type ); 
 
 endfunction
 
