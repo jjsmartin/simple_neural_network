@@ -3,13 +3,18 @@
 
 # [a,b,c,d,e,f] = get_16_by_16_data();	
 # model = nn(a,b,c,d,e,f);
+
+# save_model( model, "save test" );
+# model2 = load(model, "save test");
+
+
 # inspect_hidden_layer( model );
 
 # [g,h,i,j,k,l] = get_MNIST_data();  
 # model = nn(g,h,i,j,k,l);
 
 
-# TODO save and restore models (including parameter settings)
+
 # TODO online learning (maybe)
 # TODO consider preprocessing data
 # TODO try this syntax to allow defaults:	model = nn(a,b,c,d, ~, ~, ~, ~, ~, ~, ~, ~, ~ );
@@ -20,23 +25,15 @@
 #		- write results and parameter settings to csv, then do stats
 #		- retain predictions and see which models could be averaged? (e.g. print confusion matrix out in a line)
 # RBM or something to initialize weights?
+# TODO input layer dropout - see Hinton slides: http://videolectures.net/site/normal_dl/tag=741100/nips2012_hinton_networks_01.pdf
+
+
+# TODO put parameters into an array, preparatory for passing different combinations from another function
+# TODO record all parameter settings in the parameters file
 
 #######################################################################################################
-# this gets about 8%
-#	learning_mode 	  		= "mini-batch"		
-#	mini_batch_size   		= 50	
-#	weight_decay_coef		= 0.001
-#	weight_decay_type		= "L1"
-#	momentum 		  		= 0.9					
-#	learning_rate 		  		= 0.01	
-#	num_hidden_units 		= 200
-#	num_classes 	  		= 10			
-#	max_steps 		 		= 10000
-#	validation_frequency		= 5
-#	bias 				  		= true
-#	early_stopping 	 		= false	
 
-# 134 minutes, 3.5% error
+# 134 minutes, 3.5% error on MNIST data
 #	learning_mode 	  		= "mini-batch"		
 #	mini_batch_size   		= 50	
 #	weight_decay_coef		= 0.0005
@@ -50,6 +47,9 @@
 #	bias 				  		= true
 #	early_stopping 	 		= false	
 
+
+
+
 function model = nn( training_input, training_targets, validation_input, validation_targets, test_input, test_targets )
 
 	# FOR BOTH ORIGINAL MNIST AND 16*16 DIGITS:
@@ -58,15 +58,15 @@ function model = nn( training_input, training_targets, validation_input, validat
 
 	# parameters
 	learning_mode 	  		= "mini-batch"		
-	mini_batch_size   		= 50	
-	weight_decay_coef		= 0.0005
+	mini_batch_size   		= 5	
+	weight_decay_coef		= 0.001
 	weight_decay_type		= "L1"
 	momentum 		  		= 0.9					
 	learning_rate 		  		= 0.01	
 	num_hidden_units 		= 300
 	num_classes 	  		= 10			
-	max_steps 		 		= 10000
-	validation_frequency		= 20
+	max_steps 		 		= 1000
+	validation_frequency		= 10
 	dropout_proportion		= 0.5
 	bias 				  		= true
 	early_stopping 	 		= false	
@@ -75,7 +75,6 @@ function model = nn( training_input, training_targets, validation_input, validat
 	if bias
 		training_input		= add_bias( training_input );
 		validation_input	= add_bias( validation_input );
-		test_input			= add_bias( test_input );
 	end
 
 	# convenient to establish these values here (note we do this *after* adding the bias term)
@@ -83,6 +82,7 @@ function model = nn( training_input, training_targets, validation_input, validat
 	num_training_cases	= size( training_input, 2 );
 
 	# initialize weights
+	model = struct( "input_to_hidden_weights", [ ], "hidden_to_class_weights", [ ] );
 	model	= initialize_weights( num_input_units, num_hidden_units,  num_classes );
 
 	# initialize vectors for recording errors
@@ -122,7 +122,7 @@ function model = nn( training_input, training_targets, validation_input, validat
 
 				# (the validation forward pass and error calc are wrapped up in a single function, since we don't need intermediate results)
 				# note that we pad out the validation error record with multiple copies of the error, so it has the same number of values as training error
-				val_error 					= validation( model, validation_input, validation_targets, weight_decay_coef, weight_decay_type, dropout_proportion );
+				val_error 					= validation( model, validation_input, validation_targets, dropout_proportion );
 				validation_error_record 	= [ validation_error_record, repmat( val_error, 1, validation_frequency )	 ];
 				
 			# early stopping (if enabled)
@@ -182,22 +182,15 @@ endfunction
 
 
 # calculate the validation error for the current model
-function val_error = validation( model, validation_input, validation_targets, weight_decay_coef, weight_decay_type, dropout_proportion )
+function val_error = validation( model, validation_input, validation_targets, dropout_proportion )
 
 	validation_forward_pass_results	= forward_pass( validation_input, model, dropout_proportion, "validation" );
-	val_error 								= mean_cross_entropy_error( validation_forward_pass_results.output_from_softmax, validation_targets ) ...
-				   								+ weight_decay_error( model, weight_decay_coef, weight_decay_type ); 
+	val_error 								= mean_cross_entropy_error( validation_forward_pass_results.output_from_softmax, validation_targets ); 
 
 endfunction
 
 
-# take a model, some test input and corresponding test labels. Return predicted digits
-function predictions = make_predictions( model, test_input, dropout_proportion )
 
-	forward_pass_results = forward_pass( test_input, model, dropout_proportion, "test" ) ;
-	predictions 			 =  vectors_to_labels( forward_pass_results.output_from_softmax );
-	
-endfunction
 
 
 
@@ -210,37 +203,6 @@ function plot_error( training_error_record, validation_error_record )
 	legend ( 'training_error_record', 'validation_error_record' );
 	hold off
 	
-endfunction
-
-
-
-
-
-# carries out a forward pass over the network, and returns results from each step
-function results = forward_pass( training_input, model, dropout_proportion, pass_type )
-	
-	results.input_to_hidden_units 		= transpose( training_input ) * model.input_to_hidden_weights; 			# result is <number of examples> * <number of hidden units>
-	results.output_from_hidden_units	= logistic( results.input_to_hidden_units );
-
-	# dropout removes (=sets to zero) a certain proportion of hidden units
-	if dropout_proportion > 0.0
-		# if we're doing dropout on a training pass, set a proportion of the hidden units to zero (i.e. remove them from the model)
-		if strcmp( pass_type, "training" )
-			num_cases 							= size( results.output_from_hidden_units, 1 );
-			num_hidden_units 					= size( results.output_from_hidden_units, 2);
-			dropped_units	 					= randi( 2, 1, num_hidden_units ) - 1;   # subtract 1 to get 0-1 range
-			dropped_units_repeated 			= repmat( dropped_units, num_cases, 1 );	# match dimensions of hidden units
-			results.output_from_hidden_units 	= results.output_from_hidden_units .* dropped_units_repeated;
-			
-		#  if it's a test or a validation forward pass, just multiply the outgoing weights of *all* the hidden units by dropout_proportion	
-		elseif strcmp( pass_type, "validation" ) | strcmp( pass_type, "test" )
-			results.output_from_hidden_units = results.output_from_hidden_units * dropout_proportion;
-		end
-	end
-
-	results.input_to_softmax			= results.output_from_hidden_units * model.hidden_to_class_weights;	# result is <number of examples> * <number of classes>
-	results.output_from_softmax 		= softmax( results.input_to_softmax );										
-
 endfunction
 
 
