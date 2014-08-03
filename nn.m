@@ -54,26 +54,33 @@
 
 
 
-function model = nn( training_input, training_targets, validation_input, validation_targets, test_input, test_targets )
+
+
+function model = nn( training_input, training_targets, validation_input, validation_targets, test_input, test_targets, parameters )
 
 	# FOR BOTH ORIGINAL MNIST AND 16*16 DIGITS:
 	# inputs are <number of input vars> * <number of examples>
 	# targets are <number of examples> * < number of classes> 
 
-	# parameters
-	learning_mode 	  	= "mini-batch"		
-	mini_batch_size   	= 50	
-	weight_decay_coef	= 0.001
-	weight_decay_type	= "L1"
-	momentum 		  	= 0.9					
-	learning_rate 		     = 0.01	
-	num_hidden_units 	= 300
-	num_classes 	  	= 10			
-	max_steps 		 	= 1000
-	validation_frequency	= 1000
-	dropout_proportion	= 0.5
-	bias 				     = true
-	early_stopping 	 	= false	
+   
+
+	# assign parameter values to named variables
+	learning_mode 	  	= parameters( 1 );	
+	mini_batch_size   	= parameters( 2 );	
+	weight_decay_coef	= parameters( 3 );	
+	weight_decay_type	= parameters( 4 );	
+	momentum 		  	= parameters( 5 );					
+	learning_rate 		     = parameters( 6 );		
+	num_hidden_units 	= parameters( 7 );	
+	num_classes 	  	= parameters( 8 );			
+	max_steps 		 	= parameters( 9 );	
+	validation_frequency	= parameters( 10 );	
+	dropout_proportion	= parameters( 11 );	
+	bias 				     = parameters( 12 );	
+	early_stopping 	 	= parameters( 13 );	
+
+
+ 	parameters
 
 	# optionally add bias to the inputs
 	if bias
