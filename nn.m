@@ -7,6 +7,9 @@
 # save_model( model, "save test" );
 # model2 = load(model, "save test");
 
+# [a,b,c,d,e,f] = get_Kaggle_data();
+# model = nn(a,b,c,d,e,f);  # broke these things out manually
+
 
 # inspect_hidden_layer( model );
 
@@ -18,16 +21,17 @@
 # TODO online learning (maybe)
 # TODO consider preprocessing data
 # TODO try this syntax to allow defaults:	model = nn(a,b,c,d, ~, ~, ~, ~, ~, ~, ~, ~, ~ );
-# TODO other things as listed http://yann.lecun.com/exdb/mnist/
+# TODO other things as listed at http://yann.lecun.com/exdb/mnist/
 # TODO ensembling by tranining multiple networks and averaging predictions
 # TODO dropout: set some unit activations to zero, preventing co-adaptation of units
-# start thinking about how to systematically go through combinations of parameter
+# start thinking about how to systematically go through combinations of parameters
 #		- write results and parameter settings to csv, then do stats
 #		- retain predictions and see which models could be averaged? (e.g. print confusion matrix out in a line)
 # RBM or something to initialize weights?
 # TODO input layer dropout - see Hinton slides: http://videolectures.net/site/normal_dl/tag=741100/nips2012_hinton_networks_01.pdf
 
 
+# TODO move log_sum_exp into separate function - DON'T DUPLICATE IT
 # TODO put parameters into an array, preparatory for passing different combinations from another function
 # TODO record all parameter settings in the parameters file
 
@@ -57,23 +61,23 @@ function model = nn( training_input, training_targets, validation_input, validat
 	# targets are <number of examples> * < number of classes> 
 
 	# parameters
-	learning_mode 	  		= "mini-batch"		
-	mini_batch_size   		= 5	
-	weight_decay_coef		= 0.001
-	weight_decay_type		= "L1"
-	momentum 		  		= 0.9					
-	learning_rate 		  		= 0.01	
-	num_hidden_units 		= 300
-	num_classes 	  		= 10			
-	max_steps 		 		= 1000
-	validation_frequency		= 10
-	dropout_proportion		= 0.5
-	bias 				  		= true
-	early_stopping 	 		= false	
+	learning_mode 	  	= "mini-batch"		
+	mini_batch_size   	= 50	
+	weight_decay_coef	= 0.001
+	weight_decay_type	= "L1"
+	momentum 		  	= 0.9					
+	learning_rate 		     = 0.01	
+	num_hidden_units 	= 300
+	num_classes 	  	= 10			
+	max_steps 		 	= 1000
+	validation_frequency	= 1000
+	dropout_proportion	= 0.5
+	bias 				     = true
+	early_stopping 	 	= false	
 
 	# optionally add bias to the inputs
 	if bias
-		training_input		= add_bias( training_input );
+		training_input	= add_bias( training_input );
 		validation_input	= add_bias( validation_input );
 	end
 
@@ -104,13 +108,13 @@ function model = nn( training_input, training_targets, validation_input, validat
 		
 			# select a random subset of the data (without replacement), of the specified mini-batch size
 			random_case_indices = randperm( num_training_cases )(1:mini_batch_size);
-			training_input_batch   	= training_input( : , random_case_indices  );
-			training_targets_batch	= training_targets( random_case_indices, : );
+			training_input_batch = training_input( : , random_case_indices  );
+			training_targets_batch	 = training_targets( random_case_indices, : );
 
 		elseif strcmp( learning_mode, "batch" )
 
 			# use all training examples as the "batch"
-			training_input_batch   	= training_input;
+			training_input_batch = training_input;
 			training_targets_batch	= training_targets;
 		
 		end
@@ -122,8 +126,8 @@ function model = nn( training_input, training_targets, validation_input, validat
 
 				# (the validation forward pass and error calc are wrapped up in a single function, since we don't need intermediate results)
 				# note that we pad out the validation error record with multiple copies of the error, so it has the same number of values as training error
-				val_error 					= validation( model, validation_input, validation_targets, dropout_proportion );
-				validation_error_record 	= [ validation_error_record, repmat( val_error, 1, validation_frequency )	 ];
+				val_error = validation( model, validation_input, validation_targets, dropout_proportion );
+				validation_error_record = [ validation_error_record, repmat( val_error, 1, validation_frequency ) ];
 				
 			# early stopping (if enabled)
 			if ( early_stopping ) 
@@ -148,19 +152,18 @@ function model = nn( training_input, training_targets, validation_input, validat
 		training_error_record	= [ training_error_record, training_error ];
 
 		## WEIGHT UPDATES
-		h2c_gradient			= hidden_to_class_gradient( model, training_forward_pass_results, training_targets_batch, weight_decay_coef );
-		i2h_gradient			= input_to_hidden_gradient( model, training_forward_pass_results, training_input_batch, training_targets_batch, weight_decay_coef );
+		h2c_gradient = hidden_to_class_gradient( model, training_forward_pass_results, training_targets_batch, weight_decay_coef );
+		i2h_gradient = input_to_hidden_gradient( model, training_forward_pass_results, training_input_batch, training_targets_batch, weight_decay_coef );
 		
-		i2h_weight_update	= ( learning_rate * i2h_gradient ) + ( momentum * prev_i2h_update );
-		h2c_weight_update	= ( learning_rate * h2c_gradient ) + ( momentum * prev_h2c_update ); 		
+		i2h_weight_update = ( learning_rate * i2h_gradient ) + ( momentum * prev_i2h_update );
+		h2c_weight_update = ( learning_rate * h2c_gradient ) + ( momentum * prev_h2c_update ); 		
 		
 		model.input_to_hidden_weights -= ( i2h_weight_update);			
 		model.hidden_to_class_weights -= ( h2c_weight_update );
 
 		# record the weight updates (used for momentum in the next iteration)
-		prev_i2h_update  = i2h_weight_update;
+		prev_i2h_update = i2h_weight_update;
 		prev_h2c_update = h2c_weight_update; 
-
 
 	end
 	
@@ -181,11 +184,12 @@ function model = nn( training_input, training_targets, validation_input, validat
 endfunction
 
 
+
 # calculate the validation error for the current model
 function val_error = validation( model, validation_input, validation_targets, dropout_proportion )
 
-	validation_forward_pass_results	= forward_pass( validation_input, model, dropout_proportion, "validation" );
-	val_error 								= mean_cross_entropy_error( validation_forward_pass_results.output_from_softmax, validation_targets ); 
+	validation_forward_pass_results = forward_pass( validation_input, model, dropout_proportion, "validation" );
+	val_error = mean_cross_entropy_error( validation_forward_pass_results.output_from_softmax, validation_targets ); 
 
 endfunction
 

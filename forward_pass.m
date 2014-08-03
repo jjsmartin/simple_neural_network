@@ -12,7 +12,7 @@ function results = forward_pass( training_input, model, dropout_proportion, pass
 			results.output_from_hidden_units = dropout ( results.output_from_hidden_units, dropout_proportion );
 		#  if it's a test or a validation forward pass, just multiply the outgoing weights of *all* the hidden units by dropout_proportion	
 		elseif strcmp( pass_type, "validation" ) || strcmp( pass_type, "test" )
-			results.output_from_hidden_units = results.output_from_hidden_units * dropout_proportion;
+			results.output_from_hidden_units = results.output_from_hidden_units * ( 1- dropout_proportion );
 		end
 	end
 

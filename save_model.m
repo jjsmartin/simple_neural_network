@@ -5,7 +5,6 @@ function save_model( 	model, ...
 							filepath   		= 'C:\Users\jjsm\Documents\MNIST NN project\'  )
 
 
-
 	# create a folder for the model files
 	mkdir( filepath, model_name );
 	filepath_into_model_folder = strcat( filepath, model_name, '\' );
@@ -17,7 +16,7 @@ function save_model( 	model, ...
 	
 	# write output to hidden weights
 	h2c_file = fopen( strcat( filepath_into_model_folder , 'h2c.txt' ), 'wt' );
-	fprintf( h2c_file, '%e ', model.hidden_to_class_weights );
+	fprintf( h2c_file, '%e', model.hidden_to_class_weights );
 	fclose( h2c_file );
 
 	# write model parameters to another file
