@@ -1,18 +1,21 @@
 # Feed-forward neural network with one hidden layer and backprop
 
-
+# parameters = set_parameters();
 # [a,b,c,d,e,f] = get_16_by_16_data();	
-# model = nn(a,b,c,d,e,f);
+# model = nn(a,b,c,d,e,f,parameters);
 
 # save_model( model, "save test" );
 # model2 = load(model, "save test");
 
+# parameters = set_parameters();
 # [a,b,c,d,e,f] = get_Kaggle_data();
-# model = nn(a,b,c,d,e,f);  # broke these things out manually
+# model = nn(a,b,c,d,e,f,parameters);  # broke these things out manually
 
 
 # inspect_hidden_layer( model );
 
+
+# parameters = set_parameters();
 # [g,h,i,j,k,l] = get_MNIST_data();  
 # model = nn(g,h,i,j,k,l);
 
@@ -37,50 +40,27 @@
 
 #######################################################################################################
 
-# 134 minutes, 3.5% error on MNIST data
-#	learning_mode 	  		= "mini-batch"		
-#	mini_batch_size   		= 50	
-#	weight_decay_coef		= 0.0005
-#	weight_decay_type		= "L1"
-#	momentum 		  		= 0.9					
-#	learning_rate 		  		= 0.01	
-#	num_hidden_units 		= 300
-#	num_classes 	  		= 10			
-#	max_steps 		 		= 100000
-#	validation_frequency		= 20
-#	bias 				  		= true
-#	early_stopping 	 		= false	
-
-
-
-
-
 
 function model = nn( training_input, training_targets, validation_input, validation_targets, test_input, test_targets, parameters )
 
-	# FOR BOTH ORIGINAL MNIST AND 16*16 DIGITS:
 	# inputs are <number of input vars> * <number of examples>
 	# targets are <number of examples> * < number of classes> 
 
-   
-
 	# assign parameter values to named variables
-	learning_mode 	  	= parameters( 1 );	
-	mini_batch_size   	= parameters( 2 );	
-	weight_decay_coef	= parameters( 3 );	
-	weight_decay_type	= parameters( 4 );	
-	momentum 		  	= parameters( 5 );					
-	learning_rate 		     = parameters( 6 );		
-	num_hidden_units 	= parameters( 7 );	
-	num_classes 	  	= parameters( 8 );			
-	max_steps 		 	= parameters( 9 );	
-	validation_frequency	= parameters( 10 );	
-	dropout_proportion	= parameters( 11 );	
-	bias 				     = parameters( 12 );	
-	early_stopping 	 	= parameters( 13 );	
+	learning_mode 	  	= parameters.learning_mode; 	
+	mini_batch_size   	= parameters.mini_batch_size;	
+	weight_decay_coef	= parameters.weight_decay_coef;
+	weight_decay_type	= parameters.weight_decay_type;
+	momentum 		  	= parameters.momentum;				
+	learning_rate 		     = parameters.learning_rate;
+	num_hidden_units 	= parameters.num_hidden_units; 
+	num_classes 	  	= parameters.num_classes; 		
+	max_steps 		 	= parameters.max_steps;
+	validation_frequency	= parameters.validation_frequency;
+	dropout_proportion	= parameters.dropout_proportion;
+	bias 				     = parameters.bias; 		
+	early_stopping 	 	= parameters.early_stopping;
 
-
- 	parameters
 
 	# optionally add bias to the inputs
 	if bias
