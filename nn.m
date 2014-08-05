@@ -41,7 +41,7 @@
 #######################################################################################################
 
 
-function model = nn( training_input, training_targets, validation_input, validation_targets, test_input, test_targets, parameters )
+function [model, error, runtime] = nn( training_input, training_targets, validation_input, validation_targets, test_input, test_targets, parameters )
 
 	# inputs are <number of input vars> * <number of examples>
 	# targets are <number of examples> * < number of classes> 
@@ -155,18 +155,22 @@ function model = nn( training_input, training_targets, validation_input, validat
 	end
 	
 	# remove time elapsed
-	minutes_elapsed = etime(clock, start)/60.
+	minutes_elapsed = etime(clock, start)/60.;
 
 	# Use the learned model to make predictions for test data
 	predictions = make_predictions( model, test_input, dropout_proportion );
 
+	classification_error_rate = classification_error( vectors_to_labels( test_targets ), predictions );
+
 	# display some results including classification error (rather than cross-entropy error, since classification is 
 	# what we are ultimately interested in)
-	printf( "After %d epochs:\n", t )
-	classification_error_rate = classification_error( vectors_to_labels( test_targets ), predictions );
-	confusion_matrix( vectors_to_labels( test_targets ), predictions )
-	plot_error( training_error_record, validation_error_record )
-	printf( "Error rate: %f %% \n\n\n", classification_error_rate  )  ## % is escape character
+#	printf( "After %d epochs:\n", t )
+#	confusion_matrix( vectors_to_labels( test_targets ), predictions )
+#	plot_error( training_error_record, validation_error_record )
+#	printf( "Error rate: %f %% \n\n\n", classification_error_rate  )  ## % is escape character
+
+	error = classification_error_rate;
+	runtime = minutes_elapsed;
 	
 endfunction
 
